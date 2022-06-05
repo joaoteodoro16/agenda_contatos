@@ -15,9 +15,9 @@ class ContactHelper{
   factory ContactHelper() => _instance;
   ContactHelper.internal();
 
-  Database _db = initDb();
-
-  Future<Database> get db async{
+  Future<Database> getDB() async{
+    Database _db;
+    _db = await initDb();
     if(_db != null){
       return _db;
     }else{
@@ -44,13 +44,13 @@ class ContactHelper{
   }
 
   Future<Contact> saveContact(Contact contact) async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     contact.id = await dbContact.insert(contactTable, contact.toMap() as Map<String, dynamic>);
     return contact;
   }
 
   Future<Contact?> getContact(int id) async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     List<Map> maps = await dbContact.query(contactTable,
       columns: [idColumn,nameColumn,emailColumn,phoneColumn,imgColumn],
       where: "$idColumn = ?",
@@ -64,18 +64,17 @@ class ContactHelper{
   }
 
   Future<int> deleteContact(int id) async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     return await dbContact.delete(contactTable,where: "$idColumn = ?", whereArgs: [id]);
   }
 
   Future<int> updateContact(Contact contact) async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     return await dbContact.update(contactTable, contact.toMap() as Map<String, dynamic>, where: "$idColumn = ?", whereArgs: [contact.id]);
-    
   }
 
-  Future<List> getAllContacts()async{
-    Database dbContact = await _db;
+  Future<List<Contact>> getAllContacts()async{
+    Database dbContact = await getDB();
     List listMaps = await dbContact.rawQuery("SELECT * FROM $contactTable");
     List<Contact> listContact = [];
     for(Map m in listMaps){
@@ -85,24 +84,25 @@ class ContactHelper{
   }
 
   Future<int?> getNumber() async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     return  Sqflite.firstIntValue(await dbContact.rawQuery("SELECT COUNT(*) FROM $contactTable"));
   }
 
   Future<void> close() async {
-    Database dbContact = await db;
+    Database dbContact = await getDB();
     dbContact.close();
   }
 
 }
 
 class Contact{
+  Contact();
 
-  late int id;
-  late String name;
-  late String email;
-  late String phone;
-  late String img;
+   int id = 0;
+   String name = "";
+   String email = "";
+   String phone = "";
+   String img = "";
 
   Contact.fromMap(Map map){
     id = map[idColumn];
@@ -112,7 +112,7 @@ class Contact{
     img = map[imgColumn];
   }
 
-  Contact();
+
 
   Map toMap(){
     Map<String, dynamic> map = {
@@ -121,7 +121,9 @@ class Contact{
       phoneColumn: phone,
       imgColumn: img,
     };
-   map[idColumn] = id;
+    if(id == null) {
+      map[idColumn] = id;
+    }
     return map;
   }
 
